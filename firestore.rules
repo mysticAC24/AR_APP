@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to get current user's level
+    function getUserLevel() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.level;
+    }
+
+    // Default Read Access: All authenticated users can read all collections.
+    match /{document=**} {
+      allow read: if request.auth != null;
+    }
+    
+    // Users Collection
+    match /users/{userId} {
+      // Users can modify their own document (could be restricted further)
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Events Collection
+    match /events/{eventId} {
+      // Only Team Leaders can create new events
+      allow create: if request.auth != null && getUserLevel() == 'Team Leader';
+      // Team Leaders can update events; Coordinators can also update events to assign reps
+      allow update: if request.auth != null && getUserLevel() in ['Team Leader', 'Coordinator'];
+    }
+
+    // Tasks Collection
+    match /tasks/{taskId} {
+      allow write: if request.auth != null;
+    }
+
+    // Expenses Collection
+    match /expenses/{expenseId} {
+      // Only 'Coordinators' or 'Team Leaders' can INSERT new expenses.
+      allow create: if request.auth != null && getUserLevel() in ['Coordinator', 'Team Leader'];
+      
+      // Only users with level = 'Team Leader' can UPDATE the status of an expense.
+      allow update: if request.auth != null && getUserLevel() == 'Team Leader';
+    }
+  }
+}
