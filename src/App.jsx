@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useContext, createContext } from 'react';
+import { auth } from './lib/firebase';
+import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { db } from './lib/firebase';
 import { collection, onSnapshot, writeBatch, doc, addDoc, updateDoc } from 'firebase/firestore';
 
@@ -13,12 +15,12 @@ import {
 } from 'lucide-react';
 
 const MOCK_USERS = [
-  { id: 1, name: "Alex Sharma", role: "Design", level: "Coordinator", isFreeNow: true, hours: 12, badges: { appreciate: 3, slap: 0 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex" },
-  { id: 2, name: "Priya Patel", role: "Networking", level: "Representative", isFreeNow: false, hours: 24, badges: { appreciate: 5, slap: 1 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Priya" },
-  { id: 3, name: "Rahul Singh", role: "Operations", level: "Coordinator", isFreeNow: true, hours: 8, badges: { appreciate: 1, slap: 0 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Rahul" },
-  { id: 4, name: "Neha Gupta", role: "Media", level: "Coordinator", isFreeNow: true, hours: 15, badges: { appreciate: 4, slap: 0 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Neha" },
-  { id: 5, name: "Kabir Khan", role: "Networking", level: "Representative", isFreeNow: false, hours: 5, badges: { appreciate: 0, slap: 2 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Kabir" },
-  { id: 6, name: "Ananya Desai", role: "Design", level: "Representative", isFreeNow: true, hours: 18, badges: { appreciate: 6, slap: 0 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ananya" },
+  { id: 1, name: "Alex Sharma", vertical: "Design", role: "Coordinator", isFreeNow: true, hours: 12, badges: { appreciate: 3, slap: 0 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex" },
+  { id: 2, name: "Priya Patel", vertical: "Networking", role: "Representative", isFreeNow: false, hours: 24, badges: { appreciate: 5, slap: 1 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Priya" },
+  { id: 3, name: "Rahul Singh", vertical: "Operations", role: "Coordinator", isFreeNow: true, hours: 8, badges: { appreciate: 1, slap: 0 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Rahul" },
+  { id: 4, name: "Neha Gupta", vertical: "Media", role: "Coordinator", isFreeNow: true, hours: 15, badges: { appreciate: 4, slap: 0 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Neha" },
+  { id: 5, name: "Kabir Khan", vertical: "Networking", role: "Representative", isFreeNow: false, hours: 5, badges: { appreciate: 0, slap: 2 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Kabir" },
+  { id: 6, name: "Ananya Desai", vertical: "Design", role: "Representative", isFreeNow: true, hours: 18, badges: { appreciate: 6, slap: 0 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ananya" },
 ];
 
 const MOCK_EVENTS = [
@@ -37,13 +39,21 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    
+    const unsubAuth = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Authenticated
+      } else {
+        await signInAnonymously(auth);
+      }
+    });
+
     let usersLoaded = false;
     let eventsLoaded = false;
     
     const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
       const fetchedUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      if (fetchedUsers.length === 0) seedDatabase();
-      else setUsers(fetchedUsers);
+      setUsers(fetchedUsers);
       usersLoaded = true;
       if (usersLoaded && eventsLoaded) setLoading(false);
     });
@@ -56,19 +66,8 @@ export default function App() {
     });
 
     setTimeout(() => setLoading(false), 2000); // timeout fallback
-    return () => { unsubUsers(); unsubEvents(); };
+    return () => { unsubAuth(); unsubUsers(); unsubEvents(); };
   }, []);
-
-  const seedDatabase = async () => {
-      const batch = writeBatch(db);
-      MOCK_USERS.forEach(u => batch.set(doc(db, 'users', u.id.toString()), u));
-      MOCK_EVENTS.forEach(e => {
-        const team = e.team.map(id => id.toString());
-        const coordinators = e.coordinators.map(id => id.toString());
-        batch.set(doc(db, 'events', e.id.toString()), { ...e, team, coordinators });
-      });
-      await batch.commit();
-  };
 
   if (loading) return <div className="flex h-screen items-center justify-center font-bold text-gray-500 bg-gray-100">Connecting Database...</div>;
 
@@ -178,17 +177,17 @@ function HomeTab() {
 
 function DirectoryTab() {
   const { users } = useContext(AppContext);
+  const [filterVertical, setFilterVertical] = useState('All');
   const [filterRole, setFilterRole] = useState('All');
-  const [filterLevel, setFilterLevel] = useState('All');
   const [freeNow, setFreeNow] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const roles = ['All', 'Networking', 'Design', 'Operations', 'Media'];
-  const levels = ['All', 'Coordinators', 'Reps'];
+  const verticals = ['All', 'Networking', 'Design', 'Operations', 'Media'];
+  const rolesFilter = ['All', 'Coordinators', 'Reps'];
   const filteredUsers = users.filter(user => {
-    if (filterRole !== 'All' && user.role !== filterRole) return false;
-    if (filterLevel !== 'All') {
-      if (filterLevel === 'Coordinators' && user.level !== 'Coordinator') return false;
-      if (filterLevel === 'Reps' && user.level !== 'Representative') return false;
+    if (filterVertical !== 'All' && user.vertical !== filterVertical) return false;
+    if (filterRole !== 'All') {
+      if (filterRole === 'Coordinators' && user.vertical !== 'Coordinator') return false;
+      if (filterRole === 'Reps' && user.vertical !== 'Representative') return false;
     }
     if (freeNow && !user.isFreeNow) return false;
     return true;
@@ -203,13 +202,13 @@ function DirectoryTab() {
           <input type="text" placeholder="Search team members..." className="w-full bg-gray-100 text-sm rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
         </div>
         <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
-          {levels.map(level => (
-            <button key={level} onClick={() => setFilterLevel(level)} className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${filterLevel === level ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}>{level}</button>
+          {rolesFilter.map(level => (
+            <button key={level} onClick={() => setFilterRole(level)} className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${filterRole === level ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}>{level}</button>
           ))}
         </div>
         <div className="flex overflow-x-auto hide-scrollbar space-x-2 pb-2">
-          {roles.map(role => (
-            <button key={role} onClick={() => setFilterRole(role)} className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${filterRole === role ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{role}</button>
+          {verticals.map(role => (
+            <button key={role} onClick={() => setFilterVertical(role)} className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${filterVertical === role ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{role}</button>
           ))}
         </div>
         <div className="flex items-center justify-between mt-3 bg-green-50 px-4 py-2 rounded-lg border border-green-100">
@@ -226,12 +225,12 @@ function DirectoryTab() {
         {filteredUsers.map(user => (
           <div key={user.id} onClick={() => setSelectedUser(user)} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center cursor-pointer hover:border-blue-300 hover:shadow-md transition-all active:scale-[0.98]">
             <div className="relative">
-              <img src={user.image} alt={user.name} className={`w-12 h-12 rounded-full border-2 ${user.level === 'Coordinator' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'}`} />
+              <img src={user.image} alt={user.name} className={`w-12 h-12 rounded-full border-2 ${user.role === 'Coordinator' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'}`} />
               {user.isFreeNow && <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>}
             </div>
             <div className="ml-4 flex-1">
               <h3 className="font-semibold text-gray-800">{user.name}</h3>
-              <p className="text-xs text-gray-500">{user.role} <span className={user.level === 'Coordinator' ? 'font-semibold text-blue-600' : ''}>{user.level === 'Coordinator' ? 'Coordinator' : 'Rep'}</span></p>
+              <p className="text-xs text-gray-500">{user.vertical} <span className={user.role === 'Coordinator' ? 'font-semibold text-blue-600' : ''}>{user.role === 'Coordinator' ? 'Coordinator' : 'Rep'}</span></p>
             </div>
             <ChevronRight className="text-gray-300" size={20} />
           </div>
@@ -421,7 +420,7 @@ function EventsTab() {
       {isCreatingEvent && (
         <NewEventModal 
           onClose={() => setIsCreatingEvent(false)} 
-          onSave={(data) => {
+          onSave={async (data) => {
             const newEvent = {
               title: data.title,
               date: data.date,
@@ -431,8 +430,12 @@ function EventsTab() {
               team: [],
               coordinators: []
             };
-            addDoc(collection(db, 'events'), newEvent);
-            setIsCreatingEvent(false);
+            try {
+              await addDoc(collection(db, 'events'), newEvent);
+              setIsCreatingEvent(false);
+            } catch (error) {
+              alert("Backend Rejected: " + error.message);
+            }
           }} 
         />
       )}
@@ -442,7 +445,7 @@ function EventsTab() {
           event={activeManageTeamEvent.event}
           type={activeManageTeamEvent.type}
           onClose={() => setActiveManageTeamEvent(null)}
-          onSave={(selectedIds) => {
+          onSave={async (selectedIds) => {
             let updateData = {};
             if (activeManageTeamEvent.type === 'Coordinators') {
               const reps = activeManageTeamEvent.event.team.filter(id => !activeManageTeamEvent.event.coordinators.includes(id));
@@ -450,8 +453,12 @@ function EventsTab() {
             } else {
               updateData = { team: [...activeManageTeamEvent.event.coordinators, ...selectedIds] };
             }
-            updateDoc(doc(db, 'events', String(activeManageTeamEvent.event.id)), updateData);
-            setActiveManageTeamEvent(null);
+            try {
+              await updateDoc(doc(db, 'events', String(activeManageTeamEvent.event.id)), updateData);
+              setActiveManageTeamEvent(null);
+            } catch (error) {
+              alert("Backend Rejected: " + error.message);
+            }
           }}
         />
       )}
@@ -490,7 +497,7 @@ function LeaderboardTab() {
               <div className="relative mr-4"><img src={user.image} alt={user.name} className={`w-12 h-12 rounded-full bg-white border-2 ${rank === 1 ? 'border-yellow-400' : 'border-transparent'}`} /></div>
               <div className="flex-1">
                 <h3 className="font-bold text-gray-800">{user.name}</h3>
-                <p className="text-[10px] text-gray-500 uppercase tracking-wider">{user.role} {user.level === 'Coordinator' ? 'Coord.' : 'Rep'}</p>
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider">{user.vertical} {user.role === 'Coordinator' ? 'Coord.' : 'Rep'}</p>
               </div>
               <div className="text-right">
                 <div className={`text-sm font-bold flex items-center justify-end ${sortBy === 'hours' ? 'text-blue-600' : 'text-gray-500'}`}>{user.hours} <span className="text-[10px] font-medium ml-1">hrs</span></div>
@@ -512,11 +519,11 @@ function UserProfileModal({ user, onClose }) {
       <div className="bg-white w-full max-w-md h-[85vh] sm:h-auto sm:max-h-[90vh] rounded-t-3xl sm:rounded-3xl flex flex-col animate-in slide-in-from-bottom-5">
         <div className="relative p-6 border-b border-gray-100 flex items-center">
           <button onClick={onClose} className="absolute right-4 top-4 p-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200"><X size={20} /></button>
-          <img src={user.image} alt={user.name} className={`w-16 h-16 rounded-full shadow-sm border-2 ${user.level === 'Coordinator' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'}`} />
+          <img src={user.image} alt={user.name} className={`w-16 h-16 rounded-full shadow-sm border-2 ${user.role === 'Coordinator' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'}`} />
           <div className="ml-4">
             <h2 className="text-xl font-bold text-gray-800">{user.name}</h2>
             <div className="flex items-center mt-1">
-              <span className="text-sm text-gray-600 font-medium mr-3">{user.role} {user.level === 'Coordinator' ? 'Coord.' : 'Rep'}</span>
+              <span className="text-sm text-gray-600 font-medium mr-3">{user.vertical} {user.role === 'Coordinator' ? 'Coord.' : 'Rep'}</span>
               {user.isFreeNow ? <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">Free Now</span> : <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">In Class</span>}
             </div>
           </div>
@@ -756,7 +763,7 @@ function ManageTeamModal({ event, type, onClose, onSave }) {
                 <img src={user.image} className="w-10 h-10 rounded-full bg-gray-200 mr-3" />
                 <div className="flex-1">
                   <h4 className="font-bold text-sm text-gray-800">{user.name}</h4>
-                  <p className="text-[10px] text-gray-500">{user.role}</p>
+                  <p className="text-[10px] text-gray-500">{user.vertical}</p>
                 </div>
                 <div className={`w-5 h-5 rounded-md border flex items-center justify-center ${isSelected ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300'}`}>
                   {isSelected && <Check size={14} />}
@@ -788,8 +795,8 @@ function LoginPage({ onLogin }) {
     name: '',
     email: '',
     phone: '',
-    role: 'Design',
-    level: 'Representative',
+    vertical: 'Design',
+    role: 'Representative',
     schedule: null
   });
 

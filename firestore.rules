@@ -2,42 +2,80 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to get current user's level
-    function getUserLevel() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.level;
+    // Helper function to get current user's role
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
 
-    // Default Read Access: All authenticated users can read all collections.
+    function isTeamLeader() {
+      return getUserRole() == 'Team Leader';
+    }
+
+    function isCoordinator() {
+      return getUserRole() == 'Coordinator';
+    }
+
+    // Default Deny
     match /{document=**} {
-      allow read: if request.auth != null;
+      allow read, write: if false;
     }
     
     // Users Collection
     match /users/{userId} {
-      // Users can modify their own document (could be restricted further)
-      allow write: if request.auth != null && request.auth.uid == userId;
+      // Base read for directory. (Note: Firestore does not support field-level read 
+      // rules natively without client query projecting, so we allow base read).
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (request.auth.uid == userId || isTeamLeader());
     }
 
-    // Events Collection
+    // Events Collection & Subcollections
     match /events/{eventId} {
-      // Only Team Leaders can create new events
-      allow create: if request.auth != null && getUserLevel() == 'Team Leader';
-      // Team Leaders can update events; Coordinators can also update events to assign reps
-      allow update: if request.auth != null && getUserLevel() in ['Team Leader', 'Coordinator'];
-    }
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && (isTeamLeader() || isCoordinator());
+      allow update: if request.auth != null && (isTeamLeader() || isCoordinator());
+      allow delete: if request.auth != null && isTeamLeader();
 
-    // Tasks Collection
-    match /tasks/{taskId} {
-      allow write: if request.auth != null;
+      match /tasks/{taskId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && (isTeamLeader() || isCoordinator() || request.auth.uid in get(/databases/$(database)/documents/events/$(eventId)).data.team);
+      }
+      match /messages/{messageId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+      }
+      match /docs/{docId} {
+        allow read, write: if request.auth != null;
+      }
+      match /meetings/{meetId} {
+        allow read, write: if request.auth != null;
+      }
     }
 
     // Expenses Collection
     match /expenses/{expenseId} {
-      // Only 'Coordinators' or 'Team Leaders' can INSERT new expenses.
-      allow create: if request.auth != null && getUserLevel() in ['Coordinator', 'Team Leader'];
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && (isTeamLeader() || isCoordinator());
+      // Only Team Leaders can update the status to 'reimbursed' (or settle)
+      allow update: if request.auth != null && isTeamLeader();
+      allow delete: if request.auth != null && isTeamLeader();
+    }
+
+    // Hours Log Collection
+    match /hours_log/{logId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       
-      // Only users with level = 'Team Leader' can UPDATE the status of an expense.
-      allow update: if request.auth != null && getUserLevel() == 'Team Leader';
+      // Approving rules: TL can approve any. Coordinator can ONLY approve if target user is a Rep.
+      allow update: if request.auth != null && (
+        isTeamLeader() || 
+        (isCoordinator() && get(/databases/$(database)/documents/users/$(resource.data.userId)).data.role == 'Representative')
+      );
+      allow delete: if request.auth != null && isTeamLeader();
+    }
+    
+    // Channels Collection (Global chats/tasks if any)
+    match /channels/{channelId}/{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }
