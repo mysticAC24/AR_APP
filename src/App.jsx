@@ -247,7 +247,7 @@ function HomeTab({ activityLog = [], currentUserRole }) {
                     onClick={() => setShowAllLogs(true)}
                     className="w-full py-3 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center border-t border-gray-100"
                   >
-                    View All {activityLog.length} Entries ΓåÆ
+                    View All {activityLog.length} Entries â†’
                   </button>
                 )}
               </>
@@ -288,11 +288,11 @@ function ActivityLogEntry({ entry }) {
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-sm">
-          {label} ΓåÆ <span className="font-semibold text-gray-800">{entry.targetName}</span>
+          {label} â†’ <span className="font-semibold text-gray-800">{entry.targetName}</span>
         </div>
         <div className="text-[10px] text-gray-400 flex items-center mt-0.5">
           <span className="truncate">{entry.eventTitle}</span>
-          <span className="mx-1">┬╖</span>
+          <span className="mx-1">â”¬â•–</span>
           <span className="font-medium text-gray-500">{entry.giverName || entry.giverRole}</span>
         </div>
       </div>
@@ -791,7 +791,7 @@ function EventsTab({ currentUserRole = 'Team Leader', activityLog, setActivityLo
                                       const cur = Number(hourInputs[userId] || 0);
                                       if (cur > 0) setHourInputs(prev => ({ ...prev, [userId]: String(cur - 1) }));
                                     }}
-                                  >ΓêÆ</button>
+                                  >-</button>
                                   <input
                                     type="number" placeholder="0" min="0" max="12"
                                     className="w-8 py-1 text-center text-sm font-bold text-blue-700 bg-transparent outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -1268,11 +1268,11 @@ function ProfileTab({ currentUserRole }) {
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex divide-x divide-gray-100">
             <div className="flex-1 text-center pr-2">
               <p className="text-xs text-gray-500 font-medium mb-1 uppercase tracking-wider">Pending</p>
-              <p className="text-2xl font-black text-yellow-600">Γé╣{totalPending.toLocaleString()}</p>
+              <p className="text-2xl font-black text-yellow-600">{"\u20B9"}{totalPending.toLocaleString()}</p>
             </div>
             <div className="flex-1 text-center pl-2">
               <p className="text-xs text-gray-500 font-medium mb-1 uppercase tracking-wider">Reimbursed</p>
-              <p className="text-2xl font-black text-green-600">Γé╣{totalReimbursed.toLocaleString()}</p>
+              <p className="text-2xl font-black text-green-600">{"\u20B9"}{totalReimbursed.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -1295,7 +1295,7 @@ function ProfileTab({ currentUserRole }) {
                         <p className="text-xs text-gray-500 mt-0.5">{req.event}</p>
                       </div>
                       <div className="text-right">
-                        <span className="text-lg font-bold text-gray-800">Γé╣{req.amount}</span>
+                        <span className="text-lg font-bold text-gray-800">{"\u20B9"}{req.amount}</span>
                         <button
                           onClick={() => setSelectedBill(req)}
                           className="text-[10px] text-blue-600 font-medium flex items-center justify-end mt-1 hover:text-blue-800 transition-colors"
@@ -1332,7 +1332,7 @@ function ProfileTab({ currentUserRole }) {
                           <p className="text-xs text-gray-500 mt-0.5">{req.event}</p>
                         </div>
                         <div className="text-right">
-                          <span className="text-lg font-bold text-gray-800">Γé╣{req.amount}</span>
+                          <span className="text-lg font-bold text-gray-800">{"\u20B9"}{req.amount}</span>
                           <button
                             onClick={() => setSelectedBill(req)}
                             className="text-[10px] text-blue-600 font-medium flex items-center justify-end mt-1 hover:text-blue-800 transition-colors"
@@ -1376,7 +1376,7 @@ function ProfileTab({ currentUserRole }) {
                           <p className="text-xs text-gray-500 mt-0.5">{req.event}</p>
                         </div>
                         <div className="text-right">
-                          <span className="text-lg font-bold text-gray-800">₹{req.amount}</span>
+                          <span className="text-lg font-bold text-gray-800">{"\u20B9"}{req.amount}</span>
                           <button
                             onClick={() => setSelectedBill(req)}
                             className="text-[10px] text-blue-600 font-medium flex items-center justify-end mt-1 hover:text-blue-800 transition-colors"
@@ -1452,7 +1452,7 @@ function ProfileTab({ currentUserRole }) {
                           <p className="text-xs text-gray-500 mt-0.5">{req.event}</p>
                         </div>
                         <div className="text-right">
-                          <span className="text-lg font-bold text-gray-800">Γé╣{req.amount}</span>
+                          <span className="text-lg font-bold text-gray-800">{"\u20B9"}{req.amount}</span>
                           <button
                             onClick={() => setSelectedBill(req)}
                             className="text-[10px] text-blue-600 font-medium flex items-center justify-end mt-1 hover:text-blue-800 transition-colors"
@@ -1503,7 +1503,7 @@ function ProfileTab({ currentUserRole }) {
                 <p className="text-[10px] text-gray-500">Requested by</p>
                 <p className="text-xs font-bold text-gray-800">{selectedBill.requestedBy}</p>
               </div>
-              <p className="text-lg font-black text-gray-800">Γé╣{selectedBill.amount}</p>
+              <p className="text-lg font-black text-gray-800">{"\u20B9"}{selectedBill.amount}</p>
             </div>
           </div>
         </div>
@@ -1900,6 +1900,7 @@ function EventMeetModal({ event, onClose }) {
 function EventExpensesModal({ event, onClose, currentUserRole }) {
   const [newItem, setNewItem] = useState("");
   const [newAmount, setNewAmount] = useState("");
+  const [newBill, setNewBill] = useState(null);
   const [expenses, setExpenses] = useState([
     { id: 1, submittedBy: event.coordinators[0], item: "Venue Booking Advance", amount: 5000, status: 'Pending' },
     { id: 2, submittedBy: event.coordinators[0] || 4, item: "Banners & Flex Printing", amount: 1200, status: 'Approved' }
@@ -1913,10 +1914,12 @@ function EventExpensesModal({ event, onClose, currentUserRole }) {
       submittedBy: 1, // Simulating the current user submitting
       item: newItem,
       amount: parseFloat(newAmount),
-      status: 'Pending'
+      status: 'Pending',
+      receiptUrl: newBill
     }]);
     setNewItem("");
     setNewAmount("");
+    setNewBill(null);
   };
 
   const handleApprove = (id) => {
@@ -1967,7 +1970,7 @@ function EventExpensesModal({ event, onClose, currentUserRole }) {
                     <p className="text-[10px] text-gray-500 mt-0.5">Submitted by {user ? user.name : 'Unknown'}</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-bold text-gray-800">Γé╣{exp.amount}</div>
+                    <div className="text-sm font-bold text-gray-800">{"\u20B9"}{exp.amount}</div>
                     <span className={`inline-block mt-1 px-2 py-0.5 text-[9px] font-bold uppercase rounded-full tracking-wider
                       ${exp.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : ''}
                       ${exp.status === 'Approved' ? 'bg-green-100 text-green-700' : ''}
@@ -2006,7 +2009,10 @@ function EventExpensesModal({ event, onClose, currentUserRole }) {
         {/* Coordinator Form: Submit new expense */}
         {(currentUserRole === 'Coordinator' || currentUserRole === 'Team Leader') && (
           <div className="p-4 bg-white border-t border-gray-100">
-            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Request Reimbursement</h4>
+            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center justify-between">
+              <span>Request Reimbursement</span>
+              {newBill && <span className="text-green-500 flex items-center normal-case"><Check size={12} className="mr-1"/> Bill Attached</span>}
+            </h4>
             <form onSubmit={handleAddExpense} className="flex space-x-2">
               <input
                 type="text"
@@ -2019,10 +2025,26 @@ function EventExpensesModal({ event, onClose, currentUserRole }) {
                 type="number"
                 value={newAmount}
                 onChange={(e) => setNewAmount(e.target.value)}
-                placeholder="Amt (Γé╣)"
+                placeholder="Amt (₹)"
                 min="1"
                 className="w-24 bg-gray-100 border-transparent rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              <label 
+                className={`p-2 rounded-xl transition-colors flex-shrink-0 flex items-center justify-center cursor-pointer ${newBill ? 'bg-green-100 text-green-600 border-green-200 border' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                title="Upload Bill"
+              >
+                <ImageIcon size={20} />
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setNewBill(URL.createObjectURL(e.target.files[0]));
+                    }
+                  }} 
+                />
+              </label>
               <button
                 type="submit"
                 disabled={!newItem.trim() || !newAmount.trim()}
@@ -2052,3 +2074,4 @@ function NavButton({ icon, label, isActive, onClick }) {
     </button>
   );
 }
+
