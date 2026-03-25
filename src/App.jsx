@@ -1,19 +1,3 @@
-<<<<<<< Updated upstream
-import React, { useState, useEffect, useContext, createContext } from 'react';
-import { auth } from './lib/firebase';
-import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import { db } from './lib/firebase';
-import { collection, onSnapshot, writeBatch, doc, addDoc, updateDoc } from 'firebase/firestore';
-
-export const AppContext = createContext();
-
-import { 
-  Calendar as CalendarIcon, Users, LayoutList, Search, Clock, Award, 
-  PartyPopper, Hand, X, ChevronRight, CheckCircle2, AlertCircle, 
-  ChevronDown, ChevronUp, CheckSquare, MessageSquare, FileText, Send, 
-  Plus, ExternalLink, Trophy, Medal, Phone, Video, Link as LinkIcon, 
-  Receipt, Check, XCircle
-=======
 import React, { useState } from 'react';
 import {
   Calendar as CalendarIcon,
@@ -52,26 +36,16 @@ import {
   Edit2,
   Camera,
   Download
->>>>>>> Stashed changes
 } from 'lucide-react';
 
 // --- MOCK DATA ---
 const MOCK_USERS = [
-<<<<<<< Updated upstream
-  { id: 1, name: "Alex Sharma", vertical: "Design", role: "Coordinator", isFreeNow: true, hours: 12, badges: { appreciate: 3, slap: 0 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex" },
-  { id: 2, name: "Priya Patel", vertical: "Networking", role: "Representative", isFreeNow: false, hours: 24, badges: { appreciate: 5, slap: 1 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Priya" },
-  { id: 3, name: "Rahul Singh", vertical: "Operations", role: "Coordinator", isFreeNow: true, hours: 8, badges: { appreciate: 1, slap: 0 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Rahul" },
-  { id: 4, name: "Neha Gupta", vertical: "Media", role: "Coordinator", isFreeNow: true, hours: 15, badges: { appreciate: 4, slap: 0 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Neha" },
-  { id: 5, name: "Kabir Khan", vertical: "Networking", role: "Representative", isFreeNow: false, hours: 5, badges: { appreciate: 0, slap: 2 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Kabir" },
-  { id: 6, name: "Ananya Desai", vertical: "Design", role: "Representative", isFreeNow: true, hours: 18, badges: { appreciate: 6, slap: 0 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ananya" },
-=======
   { id: 1, name: "Alex Sharma", role: "Design", level: "Coordinator", isFreeNow: true, hours: 12, badges: { appreciate: 3, slap: 0 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex", upi: "alex@okhdfc" },
   { id: 2, name: "Priya Patel", role: "Networking", level: "Representative", isFreeNow: false, hours: 24, badges: { appreciate: 5, slap: 1 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Priya", upi: "priya@oksbi" },
   { id: 3, name: "Rahul Singh", role: "Operations", level: "Coordinator", isFreeNow: true, hours: 8, badges: { appreciate: 1, slap: 0 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Rahul", upi: "rahul@okaxis" },
   { id: 4, name: "Neha Gupta", role: "Media", level: "Coordinator", isFreeNow: true, hours: 15, badges: { appreciate: 4, slap: 0 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Neha", upi: "neha@okicici" },
   { id: 5, name: "Kabir Khan", role: "Networking", level: "Representative", isFreeNow: false, hours: 5, badges: { appreciate: 0, slap: 2 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Kabir", upi: "kabir@okhdfc" },
   { id: 6, name: "Ananya Desai", role: "Design", level: "Representative", isFreeNow: true, hours: 18, badges: { appreciate: 6, slap: 0 }, phone: "+1234567890", image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ananya", upi: "ananya@oksbi" },
->>>>>>> Stashed changes
 ];
 
 const MOCK_EVENTS = [
@@ -85,53 +59,7 @@ const MOCK_EVENTS = [
 export default function App() {
   const [activeTab, setActiveTab] = useState('directory');
   const [currentUserRole, setCurrentUserRole] = useState('Team Leader');
-<<<<<<< Updated upstream
-  const [events, setEvents] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    
-    const unsubAuth = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // Authenticated
-      } else {
-        await signInAnonymously(auth);
-      }
-    });
-
-    let usersLoaded = false;
-    let eventsLoaded = false;
-    
-    const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
-      const fetchedUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setUsers(fetchedUsers);
-      usersLoaded = true;
-      if (usersLoaded && eventsLoaded) setLoading(false);
-    });
-
-    const unsubEvents = onSnapshot(collection(db, 'events'), (snap) => {
-      const fetchedEvents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setEvents(fetchedEvents);
-      eventsLoaded = true;
-      if (usersLoaded && eventsLoaded) setLoading(false);
-    });
-
-    setTimeout(() => setLoading(false), 2000); // timeout fallback
-    return () => { unsubAuth(); unsubUsers(); unsubEvents(); };
-  }, []);
-
-  if (loading) return <div className="flex h-screen items-center justify-center font-bold text-gray-500 bg-gray-100">Connecting Database...</div>;
-
-  if (!isLoggedIn) {
-    return <LoginPage onLogin={(userData) => {
-      setCurrentUserRole(userData.level);
-      setIsLoggedIn(true);
-    }} />
-  }
-=======
   const [activityLog, setActivityLog] = useState([]);
->>>>>>> Stashed changes
 
   return (
     <div className="flex justify-center bg-gray-100 min-h-screen font-sans">
@@ -467,23 +395,10 @@ function ActivityLogModal({ activityLog, onClose }) {
 
 // --- TAB 2: TEAM DIRECTORY ---
 function DirectoryTab() {
-<<<<<<< Updated upstream
-  const { users } = useContext(AppContext);
-  const [filterVertical, setFilterVertical] = useState('All');
-=======
->>>>>>> Stashed changes
   const [filterRole, setFilterRole] = useState('All');
+  const [filterLevel, setFilterLevel] = useState('All');
   const [freeNow, setFreeNow] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-<<<<<<< Updated upstream
-  const verticals = ['All', 'Networking', 'Design', 'Operations', 'Media'];
-  const rolesFilter = ['All', 'Coordinators', 'Reps'];
-  const filteredUsers = users.filter(user => {
-    if (filterVertical !== 'All' && user.vertical !== filterVertical) return false;
-    if (filterRole !== 'All') {
-      if (filterRole === 'Coordinators' && user.vertical !== 'Coordinator') return false;
-      if (filterRole === 'Reps' && user.vertical !== 'Representative') return false;
-=======
 
   const roles = ['All', 'Networking', 'Design', 'Operations', 'Media'];
   const levels = ['All', 'Coordinators', 'Reps'];
@@ -493,14 +408,13 @@ function DirectoryTab() {
     if (filterLevel !== 'All') {
       if (filterLevel === 'Coordinators' && user.level !== 'Coordinator') return false;
       if (filterLevel === 'Reps' && user.level !== 'Representative') return false;
->>>>>>> Stashed changes
     }
     if (freeNow && !user.isFreeNow) return false;
     return true;
   });
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in duration-300">
+    <div className="flex flex-col animate-in fade-in duration-300">
       {/* Header & Filters */}
       <div className="bg-white p-5 border-b border-gray-100 sticky top-0 z-10">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">Team Directory</h1>
@@ -517,10 +431,6 @@ function DirectoryTab() {
 
         {/* Level Filters (Coordinators vs Reps) */}
         <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
-<<<<<<< Updated upstream
-          {rolesFilter.map(level => (
-            <button key={level} onClick={() => setFilterRole(level)} className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${filterRole === level ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}>{level}</button>
-=======
           {levels.map(level => (
             <button
               key={level}
@@ -530,16 +440,11 @@ function DirectoryTab() {
             >
               {level}
             </button>
->>>>>>> Stashed changes
           ))}
         </div>
 
         {/* Scrollable Role Filters */}
         <div className="flex overflow-x-auto hide-scrollbar space-x-2 pb-2">
-<<<<<<< Updated upstream
-          {verticals.map(role => (
-            <button key={role} onClick={() => setFilterVertical(role)} className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${filterVertical === role ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{role}</button>
-=======
           {roles.map(role => (
             <button
               key={role}
@@ -549,7 +454,6 @@ function DirectoryTab() {
             >
               {role}
             </button>
->>>>>>> Stashed changes
           ))}
         </div>
 
@@ -577,14 +481,6 @@ function DirectoryTab() {
             className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center cursor-pointer hover:border-blue-300 hover:shadow-md transition-all active:scale-[0.98]"
           >
             <div className="relative">
-<<<<<<< Updated upstream
-              <img src={user.image} alt={user.name} className={`w-12 h-12 rounded-full border-2 ${user.role === 'Coordinator' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'}`} />
-              {user.isFreeNow && <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>}
-            </div>
-            <div className="ml-4 flex-1">
-              <h3 className="font-semibold text-gray-800">{user.name}</h3>
-              <p className="text-xs text-gray-500">{user.vertical} <span className={user.role === 'Coordinator' ? 'font-semibold text-blue-600' : ''}>{user.role === 'Coordinator' ? 'Coordinator' : 'Rep'}</span></p>
-=======
               <img src={user.image} alt={user.name} className={`w-12 h-12 rounded-full border-2 ${user.level === 'Coordinator' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'}`} />
               {user.isFreeNow && (
                 <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>
@@ -595,7 +491,6 @@ function DirectoryTab() {
               <p className="text-xs text-gray-500">
                 {user.role} <span className={user.level === 'Coordinator' ? 'font-semibold text-blue-600' : ''}>{user.level === 'Coordinator' ? 'Coordinator' : 'Rep'}</span>
               </p>
->>>>>>> Stashed changes
             </div>
 
             <ChevronRight className="text-gray-300" size={20} />
@@ -629,8 +524,18 @@ function EventsTab({ currentUserRole = 'Team Leader', activityLog, setActivityLo
   const [activeManageTeamEvent, setActiveManageTeamEvent] = useState(null);
   const [hourInputs, setHourInputs] = useState({});
   const [pendingAction, setPendingAction] = useState(null);
+  const [showMyEvents, setShowMyEvents] = useState(false);
 
-  const filteredEvents = events.filter(e => e.status === eventFilter);
+  // Determine mock user ID based on role for simulation
+  const mockUserId = currentUserRole === 'Coordinator' ? 4 : (currentUserRole === 'Representative' ? 5 : null);
+
+  const filteredEvents = events.filter(e => {
+    if (e.status !== eventFilter) return false;
+    if (showMyEvents && mockUserId) {
+      return e.team.includes(mockUserId);
+    }
+    return true;
+  });
 
   const handleManageSave = (selectedIds) => {
     if (!activeManageTeamEvent) return;
@@ -673,7 +578,7 @@ function EventsTab({ currentUserRole = 'Team Leader', activityLog, setActivityLo
   };
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in duration-300">
+    <div className="flex flex-col animate-in fade-in duration-300">
       <div className="bg-white p-5 border-b border-gray-100 sticky top-0 z-10">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">Event Management</h1>
 
@@ -690,6 +595,19 @@ function EventsTab({ currentUserRole = 'Team Leader', activityLog, setActivityLo
             </button>
           ))}
         </div>
+
+        {/* My Events Filter Toggle */}
+        {currentUserRole !== 'Team Leader' && (
+          <div className="mt-4 flex items-center justify-between bg-blue-50/50 px-4 py-2.5 rounded-xl border border-blue-100">
+            <span className="text-sm font-semibold text-blue-900">Show My Events Only</span>
+            <button
+              onClick={() => setShowMyEvents(!showMyEvents)}
+              className={`w-11 h-6 rounded-full transition-colors relative flex items-center shadow-inner ${showMyEvents ? 'bg-blue-600' : 'bg-gray-300'}`}
+            >
+              <div className={`w-4 h-4 bg-white rounded-full shadow-sm absolute transition-transform ${showMyEvents ? 'translate-x-6' : 'translate-x-1'}`}></div>
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="p-4 space-y-4">
@@ -937,55 +855,11 @@ function EventsTab({ currentUserRole = 'Team Leader', activityLog, setActivityLo
       {activeDocsEvent && <EventDocsModal event={activeDocsEvent} onClose={() => setActiveDocsEvent(null)} />}
       {activeMeetEvent && <EventMeetModal event={activeMeetEvent} onClose={() => setActiveMeetEvent(null)} />}
       {activeExpensesEvent && <EventExpensesModal event={activeExpensesEvent} onClose={() => setActiveExpensesEvent(null)} currentUserRole={currentUserRole} />}
-<<<<<<< Updated upstream
-      
-      {isCreatingEvent && (
-        <NewEventModal 
-          onClose={() => setIsCreatingEvent(false)} 
-          onSave={async (data) => {
-            const newEvent = {
-              title: data.title,
-              date: data.date,
-              time: data.time,
-              type: data.type,
-              status: 'upcoming',
-              team: [],
-              coordinators: []
-            };
-            try {
-              await addDoc(collection(db, 'events'), newEvent);
-              setIsCreatingEvent(false);
-            } catch (error) {
-              alert("Backend Rejected: " + error.message);
-            }
-          }} 
-        />
-      )}
-      
-=======
->>>>>>> Stashed changes
       {activeManageTeamEvent && (
         <ManageTeamModal
           event={activeManageTeamEvent.event}
           type={activeManageTeamEvent.type}
           onClose={() => setActiveManageTeamEvent(null)}
-<<<<<<< Updated upstream
-          onSave={async (selectedIds) => {
-            let updateData = {};
-            if (activeManageTeamEvent.type === 'Coordinators') {
-              const reps = activeManageTeamEvent.event.team.filter(id => !activeManageTeamEvent.event.coordinators.includes(id));
-              updateData = { coordinators: selectedIds, team: [...selectedIds, ...reps] };
-            } else {
-              updateData = { team: [...activeManageTeamEvent.event.coordinators, ...selectedIds] };
-            }
-            try {
-              await updateDoc(doc(db, 'events', String(activeManageTeamEvent.event.id)), updateData);
-              setActiveManageTeamEvent(null);
-            } catch (error) {
-              alert("Backend Rejected: " + error.message);
-            }
-          }}
-=======
           onSave={handleManageSave}
         />
       )}
@@ -995,7 +869,6 @@ function EventsTab({ currentUserRole = 'Team Leader', activityLog, setActivityLo
           currentUserRole={currentUserRole}
           onConfirm={confirmAction}
           onCancel={() => setPendingAction(null)}
->>>>>>> Stashed changes
         />
       )}
     </div>
@@ -1161,7 +1034,7 @@ function LeaderboardTab() {
     .sort(sortFn);
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in duration-300">
+    <div className="flex flex-col animate-in fade-in duration-300">
       <div className="bg-white p-5 border-b border-gray-100 sticky top-0 z-10">
         <h1 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
           <Trophy className="text-yellow-500 mr-3" size={28} />
@@ -1259,6 +1132,7 @@ function ProfileTab({ currentUserRole }) {
 
   const [selectedBill, setSelectedBill] = useState(null);
   const [showReimbursedHistory, setShowReimbursedHistory] = useState(false);
+  const [showPendingReimbursements, setShowPendingReimbursements] = useState(true);
 
   // Profile & Banner Upload States
   const [uploadedProfile, setUploadedProfile] = useState(null);
@@ -1320,7 +1194,7 @@ function ProfileTab({ currentUserRole }) {
   const totalReimbursed = myReimbursed.reduce((sum, e) => sum + e.amount, 0);
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in duration-300 pb-8">
+    <div className="flex flex-col animate-in fade-in duration-300 pb-8">
       {/* Profile Header Block (LinkedIn Style) */}
       <div className="bg-white shadow-sm relative pb-4">
         {/* Banner */}
@@ -1479,72 +1353,81 @@ function ProfileTab({ currentUserRole }) {
 
         {/* Team Leader Global Expense Tracking Section */}
         {currentUserRole === 'Team Leader' && (
-          <div className="animate-in fade-in slide-in-from-bottom-2 space-y-6">
-            <div>
-              <h3 className="font-bold text-gray-800 mb-3 flex items-center">
-                <Landmark className="text-purple-600 mr-2" size={20} /> Team Reimbursements
-              </h3>
+          <div className="animate-in fade-in slide-in-from-bottom-2 space-y-4">
+            {/* Team Leader Global Expense Tracking Section (Collapsible) */}
+            <div className="bg-white rounded-xl border border-purple-100 overflow-hidden shadow-sm">
+              <button
+                onClick={() => setShowPendingReimbursements(!showPendingReimbursements)}
+                className="w-full flex items-center justify-between font-bold text-gray-800 p-4 focus:outline-none hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center text-base">
+                  <Landmark className="text-purple-600 mr-2" size={20} /> Team Reimbursements
+                </div>
+                {showPendingReimbursements ? <ChevronUp size={20} className="text-gray-500" /> : <ChevronDown size={20} className="text-gray-500" />}
+              </button>
 
-              <div className="space-y-3">
-                {pendingApprovals.map(req => (
-                  <div key={req.id} className="bg-white p-4 rounded-xl shadow-sm border border-purple-100">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h4 className="font-semibold text-gray-800 text-sm">{req.item}</h4>
-                        <p className="text-xs text-gray-500 mt-0.5">{req.event}</p>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-lg font-bold text-gray-800">₹{req.amount}</span>
-                        <button
-                          onClick={() => setSelectedBill(req)}
-                          className="text-[10px] text-blue-600 font-medium flex items-center justify-end mt-1 hover:text-blue-800 transition-colors"
-                        >
-                          <ImageIcon size={12} className="mr-1" /> View Bill
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center border-t border-gray-50 pt-3 mt-1">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 font-bold text-xs">
-                          {req.requestedBy.charAt(0)}
-                        </div>
+              {showPendingReimbursements && (
+                <div className="space-y-3 p-4 pt-0 animate-in fade-in slide-in-from-top-2">
+                  {pendingApprovals.map(req => (
+                    <div key={req.id} className="bg-white p-4 rounded-xl shadow-sm border border-purple-100">
+                      <div className="flex justify-between items-start mb-3">
                         <div>
-                          <p className="text-[10px] font-bold text-gray-700 leading-none">{req.requestedBy}</p>
-                          <p className="text-[9px] text-gray-400 mt-0.5">{req.upiId}</p>
+                          <h4 className="font-semibold text-gray-800 text-sm">{req.item}</h4>
+                          <p className="text-xs text-gray-500 mt-0.5">{req.event}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-lg font-bold text-gray-800">₹{req.amount}</span>
+                          <button
+                            onClick={() => setSelectedBill(req)}
+                            className="text-[10px] text-blue-600 font-medium flex items-center justify-end mt-1 hover:text-blue-800 transition-colors"
+                          >
+                            <ImageIcon size={12} className="mr-1" /> View Bill
+                          </button>
                         </div>
                       </div>
 
-                      {/* Quick Approve Actions */}
-                      <div className="flex space-x-1.5">
-                        <button
-                          onClick={() => handleGlobalReject(req.id)}
-                          className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
-                          title="Reject"
-                        >
-                          <X size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleGlobalApprove(req.id)}
-                          className="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors flex items-center font-bold text-[10px]"
-                          title="Settle/Reimburse"
-                        >
-                          <Check size={16} className="mr-1" /> Settle
-                        </button>
+                      <div className="flex justify-between items-center border-t border-gray-50 pt-3 mt-1">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 font-bold text-xs">
+                            {req.requestedBy.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-gray-700 leading-none">{req.requestedBy}</p>
+                            <p className="text-[9px] text-gray-400 mt-0.5">{req.upiId}</p>
+                          </div>
+                        </div>
+
+                        {/* Quick Approve Actions */}
+                        <div className="flex space-x-1.5">
+                          <button
+                            onClick={() => handleGlobalReject(req.id)}
+                            className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                            title="Reject"
+                          >
+                            <X size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleGlobalApprove(req.id)}
+                            className="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors flex items-center font-bold text-[10px]"
+                            title="Settle/Reimburse"
+                          >
+                            <Check size={16} className="mr-1" /> Settle
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                {pendingApprovals.length === 0 && (
-                  <div className="bg-gray-50 rounded-xl p-6 text-center border border-gray-100">
-                    <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <Check size={24} />
+                  ))}
+                  {pendingApprovals.length === 0 && (
+                    <div className="bg-gray-50 rounded-xl p-6 text-center border border-gray-100">
+                      <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Check size={24} />
+                      </div>
+                      <p className="text-sm font-bold text-gray-700">All Caught Up!</p>
+                      <p className="text-xs text-gray-500 mt-1">No pending reimbursements across the team.</p>
                     </div>
-                    <p className="text-sm font-bold text-gray-700">All Caught Up!</p>
-                    <p className="text-xs text-gray-500 mt-1">No pending reimbursements across the team.</p>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Team Leader Settled History (Collapsible) */}
@@ -1640,15 +1523,6 @@ function UserProfileModal({ user, onClose }) {
       <div className="bg-white w-full max-w-md h-[85vh] sm:h-auto sm:max-h-[90vh] rounded-t-3xl sm:rounded-3xl flex flex-col animate-in slide-in-from-bottom-5">
 
         <div className="relative p-6 border-b border-gray-100 flex items-center">
-<<<<<<< Updated upstream
-          <button onClick={onClose} className="absolute right-4 top-4 p-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200"><X size={20} /></button>
-          <img src={user.image} alt={user.name} className={`w-16 h-16 rounded-full shadow-sm border-2 ${user.role === 'Coordinator' ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'}`} />
-          <div className="ml-4">
-            <h2 className="text-xl font-bold text-gray-800">{user.name}</h2>
-            <div className="flex items-center mt-1">
-              <span className="text-sm text-gray-600 font-medium mr-3">{user.vertical} {user.role === 'Coordinator' ? 'Coord.' : 'Rep'}</span>
-              {user.isFreeNow ? <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">Free Now</span> : <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">In Class</span>}
-=======
           <button onClick={onClose} className="absolute right-4 top-4 p-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200">
             <X size={20} />
           </button>
@@ -1662,7 +1536,6 @@ function UserProfileModal({ user, onClose }) {
               ) : (
                 <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">In Class</span>
               )}
->>>>>>> Stashed changes
             </div>
           </div>
         </div>
@@ -2087,16 +1960,6 @@ function EventExpensesModal({ event, onClose, currentUserRole }) {
           {expenses.map(exp => {
             const user = MOCK_USERS.find(u => u.id === exp.submittedBy);
             return (
-<<<<<<< Updated upstream
-              <div key={user.id} onClick={() => toggleUser(user.id)} className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'}`}>
-                <img src={user.image} className="w-10 h-10 rounded-full bg-gray-200 mr-3" />
-                <div className="flex-1">
-                  <h4 className="font-bold text-sm text-gray-800">{user.name}</h4>
-                  <p className="text-[10px] text-gray-500">{user.vertical}</p>
-                </div>
-                <div className={`w-5 h-5 rounded-md border flex items-center justify-center ${isSelected ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300'}`}>
-                  {isSelected && <Check size={14} />}
-=======
               <div key={exp.id} className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex-1 pr-2">
@@ -2113,7 +1976,6 @@ function EventExpensesModal({ event, onClose, currentUserRole }) {
                       {exp.status}
                     </span>
                   </div>
->>>>>>> Stashed changes
                 </div>
 
                 {/* Team Leader Approval Actions */}
@@ -2189,82 +2051,4 @@ function NavButton({ icon, label, isActive, onClick }) {
       <span className="text-[10px] font-semibold">{label}</span>
     </button>
   );
-<<<<<<< Updated upstream
 }
-
-function LoginPage({ onLogin }) {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    vertical: 'Design',
-    role: 'Representative',
-    schedule: null
-  });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onLogin(formData);
-  };
-
-  return (
-    <div className="flex justify-center items-center bg-gray-100 min-h-screen font-sans">
-      <div className="w-full max-w-md bg-white min-h-screen sm:min-h-[auto] sm:rounded-3xl shadow-2xl overflow-hidden relative flex flex-col items-center justify-center p-8 animate-in fade-in zoom-in-95 duration-500">
-        <div className="absolute top-0 left-0 w-full h-48 bg-blue-600 rounded-b-[50%] scale-x-150 transform -translate-y-10 z-0 shadow-lg"></div>
-        <div className="relative z-10 w-full mb-8 text-center text-white">
-          <div className="bg-white text-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl rotate-3">
-             <CalendarIcon size={32} />
-          </div>
-          <h1 className="text-3xl font-black tracking-tight">AlumSync</h1>
-          <p className="text-blue-100 mt-1 font-medium">Connect & Collaborate</p>
-        </div>
-        <form onSubmit={handleSubmit} className="w-full relative z-10 space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Full Name</label>
-            <input required type="text" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-sm" placeholder="John Doe" onChange={e => setFormData({...formData, name: e.target.value})} />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Email Address</label>
-            <input required type="email" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-sm" placeholder="john@university.edu" onChange={e => setFormData({...formData, email: e.target.value})} />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Phone Number</label>
-            <input required type="tel" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-sm" placeholder="+1 (234) 567-8900" onChange={e => setFormData({...formData, phone: e.target.value})} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Team Role</label>
-              <select className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-sm appearance-none cursor-pointer" onChange={e => setFormData({...formData, role: e.target.value})}>
-                <option value="Design">Design</option>
-                <option value="Networking">Networking</option>
-                <option value="Operations">Operations</option>
-                <option value="Media">Media</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Level</label>
-              <select className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-sm appearance-none cursor-pointer" onChange={e => setFormData({...formData, level: e.target.value})}>
-                <option value="Representative">Representative</option>
-                <option value="Coordinator">Coordinator</option>
-                <option value="Team Leader">Team Leader</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Schedule (.ics)</label>
-            <input required type="file" accept=".ics" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" onChange={e => setFormData({...formData, schedule: e.target.files[0]})} />
-          </div>
-          <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl mt-6 hover:bg-blue-700 active:bg-blue-800 transition-all shadow-lg hover:shadow-xl flex items-center justify-center">
-            Join Platform <ChevronRight size={18} className="ml-1" />
-          </button>
-        </form>
-        <p className="mt-8 text-xs text-gray-400 font-medium text-center relative z-10 cursor-pointer hover:text-gray-600 transition-colors">
-          Already have an account? Sign In
-        </p>
-      </div>
-    </div>
-  );
-}
-=======
-}
->>>>>>> Stashed changes
