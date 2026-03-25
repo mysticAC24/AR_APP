@@ -247,7 +247,7 @@ function HomeTab({ activityLog = [], currentUserRole }) {
                     onClick={() => setShowAllLogs(true)}
                     className="w-full py-3 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center border-t border-gray-100"
                   >
-                    View All {activityLog.length} Entries â†’
+                    View All {activityLog.length} Entries &rarr;
                   </button>
                 )}
               </>
@@ -288,11 +288,11 @@ function ActivityLogEntry({ entry }) {
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-sm">
-          {label} â†’ <span className="font-semibold text-gray-800">{entry.targetName}</span>
+          {label} &rarr; <span className="font-semibold text-gray-800">{entry.targetName}</span>
         </div>
         <div className="text-[10px] text-gray-400 flex items-center mt-0.5">
           <span className="truncate">{entry.eventTitle}</span>
-          <span className="mx-1">â”¬â•–</span>
+          <span className="mx-1">&mdash;</span>
           <span className="font-medium text-gray-500">{entry.giverName || entry.giverRole}</span>
         </div>
       </div>
