@@ -1,81 +1,151 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to get current user's role
-    function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+
+    // ─── Helpers ────────────────────────────────────────────────────────────
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function isTeamLeader() { return userDoc().role == 'Team Leader'; }
+    function isCoordinator() { return userDoc().role == 'Coordinator'; }
+    function isAuth() { return request.auth != null; }
+
+    // Fields the owner may never change directly on their own document
+    function immutableOwnerFields() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['totalHours', 'badgesAppreciate', 'badgesSlap', 'uid', 'createdAt']);
     }
 
-    function isTeamLeader() {
-      return getUserRole() == 'Team Leader';
-    }
-
-    function isCoordinator() {
-      return getUserRole() == 'Coordinator';
-    }
-
-    // Default Deny
+    // Default deny
     match /{document=**} {
       allow read, write: if false;
     }
-    
-    // Users Collection
+
+    // ─── Users ──────────────────────────────────────────────────────────────
     match /users/{userId} {
-      // Base read for directory. (Note: Firestore does not support field-level read 
-      // rules natively without client query projecting, so we allow base read).
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && (request.auth.uid == userId || isTeamLeader());
+      allow read: if isAuth();
+
+      // First-time write (onboarding): own doc, must include onboardingComplete
+      allow create: if isAuth()
+        && request.auth.uid == userId
+        && request.resource.data.onboardingComplete == true
+        && request.resource.data.keys().hasAll(['uid','fullName','email','role','vertical']);
+
+      // Allow completing onboarding when a partial doc already exists
+      allow update: if isAuth()
+        && request.auth.uid == userId
+        && resource.data.onboardingComplete != true
+        && request.resource.data.onboardingComplete == true;
+
+      // Owner can update own doc but cannot change protected fields
+      allow update: if isAuth()
+        && request.auth.uid == userId
+        && immutableOwnerFields();
+
+      // TL can update any user (e.g. totalHours, badges via runTransaction)
+      allow update: if isAuth() && isTeamLeader();
+
+      // Coordinators can update totalHours/badges on Representatives via runTransaction
+      allow update: if isAuth()
+        && isCoordinator()
+        && resource.data.role == 'Representative';
+
+      allow delete: if false;
     }
 
-    // Events Collection & Subcollections
+    // ─── Events ─────────────────────────────────────────────────────────────
     match /events/{eventId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && (isTeamLeader() || isCoordinator());
-      allow update: if request.auth != null && (isTeamLeader() || isCoordinator());
-      allow delete: if request.auth != null && isTeamLeader();
+      allow read: if isAuth();
+      allow create: if isAuth()
+        && (isTeamLeader() || isCoordinator())
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.status == 'upcoming';
+      allow update: if isAuth() && isTeamLeader();
+      allow update: if isAuth()
+        && isCoordinator()
+        && request.auth.uid in resource.data.coordinatorIds
+        && !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['coordinatorIds', 'createdBy']);
+      allow delete: if isAuth() && isTeamLeader();
 
       match /tasks/{taskId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null && (isTeamLeader() || isCoordinator() || request.auth.uid in get(/databases/$(database)/documents/events/$(eventId)).data.team);
+        allow read: if isAuth();
+        allow write: if isAuth() && (
+          isTeamLeader() || isCoordinator()
+          || request.auth.uid in get(/databases/$(database)/documents/events/$(eventId)).data.coordinatorIds
+          || request.auth.uid in get(/databases/$(database)/documents/events/$(eventId)).data.representativeIds
+        );
       }
+
       match /messages/{messageId} {
-        allow read: if request.auth != null;
-        allow create: if request.auth != null;
+        allow read: if isAuth();
+        allow create: if isAuth() && request.resource.data.senderId == request.auth.uid;
+        allow update: if false;
+        allow delete: if isAuth()
+          && (isTeamLeader() || resource.data.senderId == request.auth.uid);
       }
+
       match /docs/{docId} {
-        allow read, write: if request.auth != null;
+        allow read: if isAuth();
+        allow write: if isAuth() && (isTeamLeader() || isCoordinator());
       }
+
       match /meetings/{meetId} {
-        allow read, write: if request.auth != null;
+        allow read: if isAuth();
+        allow write: if isAuth() && (isTeamLeader() || isCoordinator());
       }
     }
 
-    // Expenses Collection
+    // ─── Expenses ────────────────────────────────────────────────────────────
     match /expenses/{expenseId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && (isTeamLeader() || isCoordinator());
-      // Only Team Leaders can update the status to 'reimbursed' (or settle)
-      allow update: if request.auth != null && isTeamLeader();
-      allow delete: if request.auth != null && isTeamLeader();
+      allow read: if isAuth();
+      allow create: if isAuth()
+        && request.resource.data.submittedBy == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.amount > 0;
+      // TL approves/rejects any expense
+      allow update: if isAuth() && isTeamLeader();
+      // Submitter can only update receiptUrl while still pending
+      allow update: if isAuth()
+        && resource.data.submittedBy == request.auth.uid
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['receiptUrl', 'updatedAt']);
+      allow delete: if isAuth() && isTeamLeader();
     }
 
-    // Hours Log Collection
+    // ─── Hours Log ───────────────────────────────────────────────────────────
     match /hours_log/{logId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      
-      // Approving rules: TL can approve any. Coordinator can ONLY approve if target user is a Rep.
-      allow update: if request.auth != null && (
-        isTeamLeader() || 
-        (isCoordinator() && get(/databases/$(database)/documents/users/$(resource.data.userId)).data.role == 'Representative')
-      );
-      allow delete: if request.auth != null && isTeamLeader();
+      allow read: if isAuth();
+
+      // TL or Coordinator logging for a Rep: may pre-approve and log zero hours (badge-only)
+      allow create: if isAuth()
+        && (isTeamLeader()
+            || (isCoordinator()
+                && get(/databases/$(database)/documents/users/$(request.resource.data.userId)).data.role == 'Representative'));
+
+      // Self-log: must be pending, positive hours, own userId
+      allow create: if isAuth()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.hours > 0
+        && request.resource.data.hours <= 24;
+
+      // Only status/approvedBy/updatedAt may change on update
+      allow update: if isAuth()
+        && (isTeamLeader()
+            || (isCoordinator()
+                && get(/databases/$(database)/documents/users/$(resource.data.userId)).data.role == 'Representative'))
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'approvedBy', 'updatedAt']);
+      allow delete: if isAuth() && isTeamLeader();
     }
-    
-    // Channels Collection (Global chats/tasks if any)
-    match /channels/{channelId}/{document=**} {
-      allow read, write: if request.auth != null;
+
+    // ─── Activity Log ─────────────────────────────────────────────────────────
+    match /activity_log/{logId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if false;
     }
   }
 }

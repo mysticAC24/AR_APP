@@ -1,0 +1,59 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────
+    function isAuth() { return request.auth != null; }
+    function isImage() { return request.resource.contentType.matches('image/.*'); }
+    function isCalendar() { return request.resource.contentType == 'text/calendar'; }
+    function underMB(n) { return request.resource.size < n * 1024 * 1024; }
+
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Profile avatars — own only, image < 5 MB
+    match /avatars/{uid} {
+      allow read: if isAuth();
+      allow write: if isAuth()
+        && request.auth.uid == uid
+        && isImage()
+        && underMB(5);
+    }
+
+    // Profile banners — own only, image < 10 MB
+    match /banners/{uid} {
+      allow read: if isAuth();
+      allow write: if isAuth()
+        && request.auth.uid == uid
+        && isImage()
+        && underMB(10);
+    }
+
+    // Expense receipts — any authenticated user can upload, image < 10 MB
+    match /receipts/{expenseId} {
+      allow read: if isAuth();
+      allow write: if isAuth()
+        && isImage()
+        && underMB(10);
+    }
+
+    // ICS schedule files — own only, text/calendar < 1 MB
+    match /schedules/{uid} {
+      allow read: if isAuth() && request.auth.uid == uid;
+      allow write: if isAuth()
+        && request.auth.uid == uid
+        && isCalendar()
+        && underMB(1);
+    }
+
+    // Event documents — any auth reads; TL/Coord writes (enforced via Firestore role doc)
+    // Storage rules can't read Firestore, so we allow any authenticated write here and
+    // rely on Firestore rules for the metadata doc gating.
+    match /event_docs/{eventId}/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth() && underMB(20);
+    }
+  }
+}

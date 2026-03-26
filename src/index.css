@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent pinch-to-zoom and double-tap zoom across the whole app */
+html, body, #root {
+  touch-action: manipulation;
+}
+
+/* Prevent iOS from zooming in on focused inputs (requires font-size >= 16px) */
+input, select, textarea {
+  font-size: max(16px, 1em);
+}
+
 @layer utilities {
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
