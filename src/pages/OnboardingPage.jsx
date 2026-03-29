@@ -11,22 +11,69 @@ function parseICSToSchedule(fileText) {
     const jcal = ICAL.parse(fileText);
     const comp = new ICAL.Component(jcal);
     const vevents = comp.getAllSubcomponents('vevent');
-    return vevents
-      .filter(e => {
-        const rrule = e.getFirstPropertyValue('rrule');
-        return rrule && rrule.freq === 'WEEKLY';
-      })
-      .map(e => {
-        const dtstart = e.getFirstPropertyValue('dtstart');
-        const dtend = e.getFirstPropertyValue('dtend');
-        const jsStart = dtstart.toJSDate();
-        const jsEnd = dtend.toJSDate();
-        return {
-          day: jsStart.getDay(),
-          startTime: jsStart.toTimeString().slice(0, 5),
-          endTime: jsEnd.toTimeString().slice(0, 5),
-        };
-      });
+    const seen = new Set();
+    const result = [];
+    for (const e of vevents) {
+      const dtstart = e.getFirstPropertyValue('dtstart');
+      if (!dtstart) continue;
+      // Skip all-day events (ical.js marks DATE-only values with isDate = true)
+      if (dtstart.isDate) continue;
+      const jsStart = dtstart.toJSDate();
+      const startTime = jsStart.toTimeString().slice(0, 5);
+      // Skip midnight-anchored events (likely all-day or badly formatted)
+      if (startTime === '00:00') continue;
+      const day = jsStart.getDay();
+      const key = `${day}-${startTime}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const dtend = e.getFirstPropertyValue('dtend');
+      const endTime = dtend ? dtend.toJSDate().toTimeString().slice(0, 5) : startTime;
+      result.push({ day, startTime, endTime });
+    }
+    return result;
+  } catch {
+    return [];
+  }
+}
+
+const DAY_MAP = {
+  sunday: 0, sun: 0,
+  monday: 1, mon: 1,
+  tuesday: 2, tue: 2,
+  wednesday: 3, wed: 3,
+  thursday: 4, thu: 4,
+  friday: 5, fri: 5,
+  saturday: 6, sat: 6,
+};
+
+function parseCSVToSchedule(text) {
+  try {
+    const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+    const seen = new Set();
+    const result = [];
+    for (const line of lines) {
+      const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+      if (cols.length < 2) continue;
+      const [dayRaw, startRaw, endRaw] = cols;
+      // Skip header row
+      const dayLower = dayRaw.toLowerCase();
+      if (dayLower === 'day' || dayLower === 'days') continue;
+      let day;
+      if (/^\d$/.test(dayRaw)) {
+        day = parseInt(dayRaw);
+      } else {
+        day = DAY_MAP[dayLower];
+      }
+      if (day === undefined || day < 0 || day > 6) continue;
+      const startTime = startRaw?.slice(0, 5) || '';
+      const endTime = endRaw?.slice(0, 5) || startTime;
+      if (!startTime || startTime === '00:00') continue;
+      const key = `${day}-${startTime}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push({ day, startTime, endTime });
+    }
+    return result;
   } catch {
     return [];
   }
@@ -59,10 +106,12 @@ export default function OnboardingPage() {
     try {
       let schedule = [];
 
-      // Parse ICS in browser if provided
+      // Parse schedule file in browser if provided
       if (icsFile) {
         const text = await icsFile.text();
-        schedule = parseICSToSchedule(text);
+        schedule = icsFile.name.toLowerCase().endsWith('.csv')
+          ? parseCSVToSchedule(text)
+          : parseICSToSchedule(text);
 
         // Also upload to Storage for backup
         try {
@@ -190,18 +239,18 @@ export default function OnboardingPage() {
 
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                Weekly Schedule <span className="font-normal text-gray-400 normal-case">(.ics file, optional)</span>
+                Weekly Schedule <span className="font-normal text-gray-400 normal-case">(.ics or .csv, optional)</span>
               </label>
               <label className="flex items-center justify-center w-full border-2 border-dashed border-gray-200 rounded-xl px-4 py-4 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all group">
                 <input
                   type="file"
-                  accept=".ics"
+                  accept=".ics,.csv"
                   className="hidden"
                   onChange={e => setIcsFile(e.target.files?.[0] || null)}
                 />
                 <Upload size={18} className="text-gray-400 group-hover:text-blue-500 mr-2 transition-colors" />
                 <span className="text-sm text-gray-500 group-hover:text-blue-600 transition-colors">
-                  {icsFile ? icsFile.name : 'Upload your .ics calendar file'}
+                  {icsFile ? icsFile.name : 'Upload .ics or .csv timetable'}
                 </span>
               </label>
               {icsFile && (

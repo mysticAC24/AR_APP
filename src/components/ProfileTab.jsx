@@ -197,16 +197,13 @@ export default function ProfileTab() {
               <div className="flex items-center space-x-2 mt-1">
                 <p className="text-sm font-medium text-gray-700">{userProfile.vertical} | Alumni Relations</p>
               </div>
-              <div className="mt-1">
-                <select
-                  value={userProfile.role}
-                  onChange={e => handleRoleChange(e.target.value)}
-                  className="text-sm font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded-lg px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
-                >
-                  <option value="Representative">Representative</option>
-                  <option value="Coordinator">Coordinator</option>
-                  <option value="Team Leader">Team Leader</option>
-                </select>
+              <div className="mt-1.5 flex space-x-1">
+                {['Representative', 'Coordinator', 'Team Leader'].map(r => (
+                  <button key={r} onClick={() => handleRoleChange(r)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${userProfile.role === r ? 'bg-blue-600 text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+                    {r === 'Representative' ? 'Rep' : r === 'Coordinator' ? 'Coord' : 'TL'}
+                  </button>
+                ))}
               </div>
               <p className="text-xs text-gray-500 mt-0.5">Indian Institute of Technology, Delhi</p>
             </div>

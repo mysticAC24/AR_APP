@@ -20,9 +20,31 @@ import OnboardingPage from './pages/OnboardingPage.jsx';
 import ProfileTab from './components/ProfileTab.jsx';
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
+const TAB_ORDER = ['home', 'directory', 'events', 'leaderboard', 'profile'];
+
 export default function App() {
   const { firebaseUser, userProfile, authLoading, profileLoading, isOnboarded, toast, showToast } = useContext(AppContext);
   const [activeTab, setActiveTab] = useState('home');
+  const touchStartX = React.useRef(null);
+  const touchStartY = React.useRef(null);
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.changedTouches[0].clientX;
+    touchStartY.current = e.changedTouches[0].clientY;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    touchStartX.current = null;
+    touchStartY.current = null;
+    // Only trigger if horizontal swipe is dominant and long enough
+    if (Math.abs(deltaX) < 50 || Math.abs(deltaX) < Math.abs(deltaY)) return;
+    const idx = TAB_ORDER.indexOf(activeTab);
+    if (deltaX < 0 && idx < TAB_ORDER.length - 1) setActiveTab(TAB_ORDER[idx + 1]);
+    if (deltaX > 0 && idx > 0) setActiveTab(TAB_ORDER[idx - 1]);
+  };
 
   // Auth state machine
   if (authLoading || profileLoading) {
@@ -41,7 +63,8 @@ export default function App() {
 
   return (
     <div className="flex justify-center bg-gray-100 min-h-screen font-sans">
-      <div className="w-full max-w-md bg-white h-screen flex flex-col shadow-2xl overflow-hidden relative">
+      <div className="w-full max-w-md bg-white h-screen flex flex-col shadow-2xl overflow-hidden"
+        onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
 
         {/* Global Toast */}
         {toast && (
@@ -52,7 +75,7 @@ export default function App() {
         )}
 
         {/* App Content Area */}
-        <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
+        <div className="flex-1 overflow-y-auto min-h-0">
           {activeTab === 'home' && <HomeTab />}
           {activeTab === 'directory' && <DirectoryTab />}
           {activeTab === 'events' && <EventsTab />}
@@ -60,8 +83,8 @@ export default function App() {
           {activeTab === 'profile' && <ProfileTab />}
         </div>
 
-        {/* Bottom Navigation */}
-        <div className="absolute bottom-0 w-full bg-white border-t border-gray-200 flex flex-col shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-[60]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        {/* Bottom Navigation — flex child, always at bottom, never overlaps content */}
+        <div className="w-full bg-white border-t border-gray-200 flex flex-col shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-[60] flex-shrink-0" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <div className="flex justify-around items-center h-16 px-1">
             <NavButton icon={<CalendarIcon size={24} />} label="Home" isActive={activeTab === 'home'} onClick={() => setActiveTab('home')} />
             <NavButton icon={<Users size={24} />} label="Team" isActive={activeTab === 'directory'} onClick={() => setActiveTab('directory')} />
@@ -468,8 +491,16 @@ function EventsTab() {
   const [hourInputs, setHourInputs] = useState({});
   const [pendingAction, setPendingAction] = useState(null);
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
+  const [myEventsOnly, setMyEventsOnly] = useState(false);
 
-  const filteredEvents = events.filter(e => e.status === eventFilter);
+  const myId = userProfile?.uid || userProfile?.id;
+  const filteredEvents = events.filter(e => {
+    if (e.status !== eventFilter) return false;
+    if (!myEventsOnly) return true;
+    return e.createdBy === myId ||
+      (e.coordinatorIds || []).includes(myId) ||
+      (e.representativeIds || []).includes(myId);
+  });
 
   const requestAction = (actionType, targetUser, eventTitle, hours, event) => {
     setPendingAction({ actionType, targetUser, eventTitle, hours, event });
@@ -540,11 +571,17 @@ function EventsTab() {
             </button>
           )}
         </div>
-        <div className="flex bg-gray-100 p-1 rounded-xl">
-          {['ongoing', 'upcoming', 'past'].map(status => (
-            <button key={status} onClick={() => setEventFilter(status)}
-              className={`flex-1 py-2 text-sm font-semibold capitalize rounded-lg transition-all ${eventFilter === status ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}>{status}</button>
-          ))}
+        <div className="flex items-center space-x-2">
+          <div className="flex flex-1 bg-gray-100 p-1 rounded-xl">
+            {['ongoing', 'upcoming', 'past'].map(status => (
+              <button key={status} onClick={() => setEventFilter(status)}
+                className={`flex-1 py-2 text-sm font-semibold capitalize rounded-lg transition-all ${eventFilter === status ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}>{status}</button>
+            ))}
+          </div>
+          <button onClick={() => setMyEventsOnly(v => !v)}
+            className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all ${myEventsOnly ? 'bg-blue-600 text-white shadow-sm' : 'bg-gray-100 text-gray-500'}`}>
+            Mine
+          </button>
         </div>
       </div>
 
